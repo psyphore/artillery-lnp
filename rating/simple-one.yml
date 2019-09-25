@@ -1,0 +1,55 @@
+#> artillery run -e dev ./rating/simple-one.yml -o ./rating/r1.json -q
+config:
+  target: "https://api url"
+  payload:
+    path: "../keywords.csv"
+    fields:
+      - "proposalId"
+      - "username"
+      - "password"
+      - "token"
+  defaults:
+    headers:
+      content-type: "application/json"
+      authorization: "{{ token }}"
+  environments:
+    dev:
+      target: "https://api url"
+      defaults:
+        headers:
+          content-type: "application/json"
+          authorization: "{{ token }}"
+      phases:
+        - duration: 60
+          arrivalRate: 1
+          rampTo: 5
+          name: "Warm up the application"
+        - pause: 60
+          name: "Pause for 60"
+        - duration: 60
+          arrivalRate: 16
+          rampTo: 10
+          name: "Sustain max load (16 x 60)"
+    production:
+      target: "https://live-apiv2.iplatform.co.za"
+      phases:
+        - duration: 120
+          arrivalRate: 10
+    staging:
+      target: "http://url"
+      phases:
+        - duration: 60
+          arrivalRate: 1
+    uat:
+      target: "https://url"
+      phases:
+        - duration: 60
+          arrivalRate: 1
+scenarios:
+  - flow:
+      - log: "{{ $environment }} | MCL ReRating {{ proposalId }}"
+      - post:
+          url: "/proposalheader/{{ proposalId }}/GetQuote"
+          json:
+            id: "{{ proposalId }}"
+            reQuote: "true"
