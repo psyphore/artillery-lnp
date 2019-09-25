@@ -1,6 +1,6 @@
 #> artillery run -e dev ./rating/simple-one.yml -o ./rating/r1.json -q
 config:
-  target: "https://api url"
+  target: "https://url"
   payload:
     path: "../keywords.csv"
     fields:
@@ -14,7 +14,7 @@ config:
       authorization: "{{ token }}"
   environments:
     dev:
-      target: "https://api url"
+      target: "https://url"
       defaults:
         headers:
           content-type: "application/json"
@@ -31,7 +31,7 @@ config:
           rampTo: 10
           name: "Sustain max load (16 x 60)"
     production:
-      target: "https://live-apiv2.iplatform.co.za"
+      target: "https://url"
       phases:
         - duration: 120
           arrivalRate: 10
