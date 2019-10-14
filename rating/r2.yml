@@ -1,6 +1,12 @@
 #> artillery run -e dev ./rating/r2.yml -o ./rating/output/r2/report1.json -q
 config:
   target: "http://dev.iplatform.api"
+  http:
+    # timeout: 90 # 120seconds default
+    # pool: 16 # All HTTP requests from all virtual users will be sent over the same 16 connections
+  ensure: # Exit if the conditions are not met
+    p95: 200 # latency must be 200ms
+    maxErrorRate: 1 # error rate for users created vs requests completed must be less than 1%
   payload:
     path: "../keywords.csv"
     fields:
@@ -20,16 +26,18 @@ config:
           content-type: "application/json"
           authorization: "{{ token }}"
       phases:
-        - duration: 60
+        - duration: 30
           arrivalRate: 1
-          rampTo: 5
-          name: "Warm up the application"
-        - pause: 60
-          name: "Pause for 60"
+          rampTo: 16
+          name: "Warm up the application" # warm up 1 user for 30 seconds till 16 users are in
+        - pause: 10
         - duration: 60
           arrivalRate: 16
-          rampTo: 10
-          name: "Sustain max load (16 x 60)"
+          name: "Sustain medium load (16 x 60)" # keep 16 user for 60 seconds
+        - pause: 10
+        - duration: 120
+          arrivalCount: 50
+          name: "Sustain max load (50 x 120)" # create 50 users in 120 seconds
     production:
       target: "https://url"
       phases:
@@ -50,3 +58,10 @@ scenarios:
       - log: "env: {{ $environment }} | ch: {{ channelId }} | prop: {{ proposalId }} | quote: {{ reQuote }}"
       - get:
           url: "/proposalheader/{{ proposalId }}/Quote/{{ channelId }}/{{ reQuote }}"
+      - think: 5 # wait for 5 seconds
+      # - loop: # loop n(count) times for the get request below
+      #     - log: "env: {{ $environment }} | ch: {{ channelId }} | prop: {{ proposalId }} | quote: {{ reQuote }}"
+      #     - get:
+      #         url: "/proposalheader/{{ proposalId }}/Quote/{{ channelId }}/{{ reQuote }}"
+      #     - think: 5 # wait for 5 seconds
+      #   count: 2
