@@ -1,0 +1,64 @@
+#> artillery run -e dev ./rating/r1.yml -o ./rating/output/r1/report1.json -q
+config:
+  target: "http://dev.iplatform.api"
+  payload:
+    path: "../keywords.csv"
+    fields:
+      - "channelId"
+      - "proposalId"
+      - "reQuote"
+      - "token"
+  defaults:
+    headers:
+      content-type: "application/json"
+      authorization: "{{ token }}"
+  environments:
+    dev:
+      target: "http://dev.iplatform.api"
+      defaults:
+        headers:
+          content-type: "application/json"
+          authorization: "{{ token }}"
+      phases:
+        - duration: 60
+          arrivalRate: 1
+          rampTo: 5
+          name: "Warm up the application"
+        # - pause: 60
+        #   name: "Pause for 60"
+        # - duration: 60
+        #   arrivalRate: 16
+        #   rampTo: 10
+        #   name: "Sustain max load (16 x 60)"
+    production:
+      target: "https://live-apiv2.iplatform.co.za"
+      phases:
+        - duration: 120
+          arrivalRate: 10
+    staging:
+      target: "http://staging-apiv2.iplatform.co.za"
+      phases:
+        - duration: 60
+          arrivalRate: 1
+    uat:
+      target: "https://uat-apiv2.iplatform.co.za"
+      phases:
+        - duration: 60
+          arrivalRate: 1
+scenarios:
+  - flow:
+      - log: "{{ $environment }} | {{ channelId }} Fetch Rating {{ proposalId }}"
+      - post:
+          url: "/proposalheader/{{ proposalId }}/GetQuote"
+          json:
+            id: "{{ proposalId }}"
+            reQuote: "false"
+            channelId: "{{ channelId }}"
+  - flow:
+      - log: "{{ $environment }} | {{ channelId }} ReRating {{ proposalId }}"
+      - post:
+          url: "/proposalheader/{{ proposalId }}/GetQuote"
+          json:
+            id: "{{ proposalId }}"
+            reQuote: "true"
+            channelId: "{{ channelId }}"

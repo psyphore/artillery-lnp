@@ -1,12 +1,12 @@
-#> artillery run -e dev ./rating/simple-one.yml -o ./rating/r1.json -q
+#> artillery run -e dev ./rating/r2.yml -o ./rating/output/r2/report1.json -q
 config:
-  target: "https://api url"
+  target: "http://dev.iplatform.api"
   payload:
     path: "../keywords.csv"
     fields:
+      - "channelId"
       - "proposalId"
-      - "username"
-      - "password"
+      - "reQuote"
       - "token"
   defaults:
     headers:
@@ -14,7 +14,7 @@ config:
       authorization: "{{ token }}"
   environments:
     dev:
-      target: "https://api url"
+      target: "http://dev.iplatform.api"
       defaults:
         headers:
           content-type: "application/json"
@@ -36,20 +36,17 @@ config:
         - duration: 120
           arrivalRate: 10
     staging:
-      target: "http://url"
+      target: "http://staging-apiv2.iplatform.co.za"
       phases:
         - duration: 60
           arrivalRate: 1
     uat:
-      target: "https://url"
+      target: "https://uat-apiv2.iplatform.co.za"
       phases:
         - duration: 60
           arrivalRate: 1
 scenarios:
   - flow:
-      - log: "{{ $environment }} | MCL ReRating {{ proposalId }}"
-      - post:
-          url: "/proposalheader/{{ proposalId }}/GetQuote"
-          json:
-            id: "{{ proposalId }}"
-            reQuote: "true"
+      - log: "env: {{ $environment }} | ch: {{ channelId }} | prop: {{ proposalId }} | quote: {{ reQuote }}"
+      - get:
+          url: "/proposalheader/{{ proposalId }}/Quote/{{ channelId }}/{{ reQuote }}"
