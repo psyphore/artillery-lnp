@@ -61,5 +61,5 @@ typings/
 .next
 **/simeple*.txt
 **/r*.json
-**/keywords.csv
+**/keywords*.csv
 **/output/
