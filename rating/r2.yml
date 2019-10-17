@@ -1,25 +1,27 @@
 #> artillery run -e dev ./rating/r2.yml -o ./rating/output/r2/report1.json -q
+#> DEBUG=http,http:response artillery run -e dev ./rating/r2.yml -o ./rating/output/r2/report1.json -q
+#> DEBUG=http:status artillery run -e dev ./rating/r2.yml -o ./rating/output/r2/report1.json -q
+
 config:
-  target: "http://dev.iplatform.api"
   http:
-    # timeout: 90 # 120seconds default
-    # pool: 16 # All HTTP requests from all virtual users will be sent over the same 16 connections
+  # timeout: 90 # 120seconds default
+  # pool: 16 # All HTTP requests from all virtual users will be sent over the same 16 connections
   ensure: # Exit if the conditions are not met
     p95: 200 # latency must be 200ms
     maxErrorRate: 1 # error rate for users created vs requests completed must be less than 1%
-  payload:
-    path: "../keywords.csv"
-    fields:
-      - "channelId"
-      - "proposalId"
-      - "reQuote"
-      - "token"
   defaults:
     headers:
       content-type: "application/json"
       authorization: "{{ token }}"
   environments:
     dev:
+      payload:
+        path: "../keywords.csv"
+        fields:
+          - "channelId"
+          - "proposalId"
+          - "reQuote"
+          - "token"
       target: "http://dev.iplatform.api"
       defaults:
         headers:
@@ -39,29 +41,56 @@ config:
           arrivalCount: 50
           name: "Sustain max load (50 x 120)" # create 50 users in 120 seconds
     production:
-      target: "https://url"
+      target: "https://production.iplatform.api"
       phases:
         - duration: 120
-          arrivalRate: 10
-    staging:
-      target: "http://url"
+          arrivalRate: 1
+          rampTo: 10
+          name: "Basic 10 user per second in 120 seconds"
+    demo:
+      payload:
+        path: "../keywords-demo.csv"
+        fields:
+          - "channelId"
+          - "proposalId"
+          - "reQuote"
+          - "token"
+      target: "https://demo.iplatform.api/"
+      headers:
+        content-type: "application/json"
+        authorization: "{{ token }}"
       phases:
         - duration: 60
           arrivalRate: 1
+          name: "Basic 1 user per second in 60 seconds"
+        - pause: 5
+        - duration: 60
+          arrivalRate: 1
+          rampTo: 16
+          name: "Basic 16 users per second for 60 seconds"
     uat:
-      target: "https://url"
+      payload:
+        path: "../keywords-uat.csv"
+        fields:
+          - "channelId"
+          - "proposalId"
+          - "reQuote"
+          - "token"
+      target: "https://uat.iplatform.api"
       phases:
         - duration: 60
           arrivalRate: 1
+          name: "Basic 1 user per second in 60 seconds"
 scenarios:
   - flow:
       - log: "env: {{ $environment }} | ch: {{ channelId }} | prop: {{ proposalId }} | quote: {{ reQuote }}"
       - get:
           url: "/proposalheader/{{ proposalId }}/Quote/{{ channelId }}/{{ reQuote }}"
       - think: 5 # wait for 5 seconds
-      # - loop: # loop n(count) times for the get request below
-      #     - log: "env: {{ $environment }} | ch: {{ channelId }} | prop: {{ proposalId }} | quote: {{ reQuote }}"
-      #     - get:
-      #         url: "/proposalheader/{{ proposalId }}/Quote/{{ channelId }}/{{ reQuote }}"
-      #     - think: 5 # wait for 5 seconds
-      #   count: 2
+  - flow:
+      - loop: # loop n(count) times for the get request below
+          - log: "env: {{ $environment }} | ch: {{ channelId }} | prop: {{ proposalId }} | quote: {{ reQuote }}"
+          - get:
+              url: "/proposalheader/{{ proposalId }}/Quote/{{ channelId }}/{{ reQuote }}"
+          - think: 5 # wait for 5 seconds
+        count: 2
